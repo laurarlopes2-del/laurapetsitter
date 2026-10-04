@@ -1,0 +1,9 @@
+{
+  "name": "Laura Petsitter",
+  "short_name": "Petsitter",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f7f7f3",
+  "theme_color": "#667965",
+  "icons": []
+}

@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#6b7d68">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Laura Petsitter">
+<link rel="manifest" href="manifest.json">
+<title>Laura Petsitter</title>
+<style>
+:root{--g:#667965;--g2:#e9eee7;--bg:#f7f7f3;--card:#fff;--txt:#273027;--muted:#737a73;--line:#e1e5df;--red:#a95050;--yellow:#b88627}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding-bottom:78px}
+header{background:var(--g);color:white;padding:calc(20px + env(safe-area-inset-top)) 18px 20px;border-radius:0 0 24px 24px}
+header h1{margin:0;font-size:25px}header p{margin:4px 0 0;opacity:.9}
+main{max-width:760px;margin:auto;padding:16px}.page{display:none}.page.active{display:block}
+h2{font-size:21px;margin:8px 0 14px}.sub{color:var(--muted);font-size:13px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}.full{grid-column:1/-1}
+.card{background:var(--card);border:1px solid var(--line);border-radius:17px;padding:15px;margin-bottom:11px;box-shadow:0 2px 8px #00000008}
+.row{display:flex;justify-content:space-between;gap:10px;align-items:center}.title{font-weight:750;font-size:17px}.pill{font-size:11px;font-weight:700;background:var(--g2);color:var(--g);padding:5px 8px;border-radius:20px}
+button{font:inherit;border:0;border-radius:11px;padding:11px 13px;font-weight:650}.primary{background:var(--g);color:white}.secondary{background:white;border:1px solid var(--line);color:var(--g)}.danger{color:var(--red)}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:13px}
+input,select,textarea{width:100%;font:inherit;padding:12px;border:1px solid var(--line);border-radius:11px;background:white;color:var(--txt)}
+label{font-size:12px;font-weight:700;color:#555e55}.field{display:flex;flex-direction:column;gap:5px}.search{margin-bottom:12px}
+.nav{position:fixed;z-index:5;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);display:flex;justify-content:space-around;padding:8px 5px calc(8px + env(safe-area-inset-bottom));box-shadow:0 -3px 12px #0000000a}
+.nav button{background:transparent;color:var(--muted);font-size:11px;padding:5px}.nav button.active{color:var(--g);font-weight:800}
+.modal{position:fixed;z-index:10;inset:0;background:#0007;display:none;align-items:flex-end}.modal.open{display:flex}
+.sheet{background:var(--bg);width:100%;max-width:760px;margin:auto;max-height:93vh;overflow:auto;border-radius:24px 24px 0 0;padding:20px}
+.sheet h3{margin:0 0 14px;font-size:21px}.footer{display:flex;gap:9px;margin-top:15px}.footer>*{flex:1}
+.stat{font-size:26px;font-weight:800}.stat small{display:block;font-size:12px;color:var(--muted);font-weight:600}
+.empty{text-align:center;color:var(--muted);padding:30px 8px}
+.check{display:flex;gap:9px;align-items:center;padding:9px 0}.check input{width:auto}
+.toast{position:fixed;z-index:30;bottom:90px;left:50%;transform:translateX(-50%);background:#273027;color:white;padding:11px 15px;border-radius:12px;display:none}
+@media(max-width:520px){.grid{grid-template-columns:1fr}.full{grid-column:auto}}
+</style>
+</head>
+<body>
+<header><h1>🐾 Laura Petsitter</h1><p>Organize seus clientes, pets e visitas</p></header>
+<main>
+<section id="home" class="page active">
+<h2>Visão geral</h2>
+<div class="grid">
+<div class="card"><div class="stat" id="statPets">0</div><small>Pets cadastrados</small></div>
+<div class="card"><div class="stat" id="statClients">0</div><small>Clientes</small></div>
+<div class="card"><div class="stat" id="statToday">0</div><small>Visitas hoje</small></div>
+<div class="card"><div class="stat" id="statPending">0</div><small>Pagamentos pendentes</small></div>
+</div>
+<div class="card"><div class="row"><div><div class="title">Próximas visitas</div><div class="sub">Sua agenda</div></div><button class="secondary" onclick="go('agenda')">Ver agenda</button></div></div>
+<div id="homeVisits"></div>
+</section>
+
+<section id="clientes" class="page">
+<h2>Clientes</h2><div class="actions"><button class="primary" onclick="openClient()">＋ Novo cliente</button></div>
+<input class="search" placeholder="🔎 Buscar cliente..." oninput="renderClients(this.value)">
+<div id="clientList"></div>
+</section>
+
+<section id="pets" class="page">
+<h2>Pets</h2><div class="actions"><button class="primary" onclick="openPet()">＋ Novo pet</button></div>
+<input class="search" placeholder="🔎 Buscar pet..." oninput="renderPets(this.value)">
+<div id="petList"></div>
+</section>
+
+<section id="agenda" class="page">
+<h2>Agenda</h2><div class="actions"><button class="primary" onclick="openVisit()">＋ Agendar visita</button></div>
+<input id="dateFilter" type="date" onchange="renderVisits()" style="margin-bottom:12px">
+<div id="visitList"></div>
+</section>
+
+<section id="financeiro" class="page">
+<h2>Financeiro</h2>
+<div class="grid">
+<div class="card"><div class="stat" id="received">R$ 0</div><small>Recebido</small></div>
+<div class="card"><div class="stat" id="openMoney">R$ 0</div><small>A receber</small></div>
+</div>
+<div id="financeList"></div>
+</section>
+</main>
+
+<nav class="nav">
+<button onclick="go('home')" data-page="home" class="active">🏠<br>Início</button>
+<button onclick="go('clientes')" data-page="clientes">👤<br>Clientes</button>
+<button onclick="go('pets')" data-page="pets">🐾<br>Pets</button>
+<button onclick="go('agenda')" data-page="agenda">📅<br>Agenda</button>
+<button onclick="go('financeiro')" data-page="financeiro">💰<br>Financeiro</button>
+</nav>
+
+<div class="modal" id="modal"><div class="sheet"><h3 id="modalTitle"></h3><div id="modalBody"></div></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const KEY='lauraPetsitterV2';
+let db=JSON.parse(localStorage.getItem(KEY)||'{"clients":[],"pets":[],"visits":[]}');
+const save=()=>localStorage.setItem(KEY,JSON.stringify(db));
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+const money=n=>(Number(n)||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const today=()=>new Date().toISOString().slice(0,10);
+function toast(t){let x=document.getElementById('toast');x.textContent=t;x.style.display='block';setTimeout(()=>x.style.display='none',1800)}
+function go(p){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.getElementById(p).classList.add('active');document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.page===p));if(p==='home')renderHome();if(p==='clientes')renderClients();if(p==='pets')renderPets();if(p==='agenda')renderVisits();if(p==='financeiro')renderFinance()}
+function closeModal(){document.getElementById('modal').classList.remove('open')}
+function open(title,body){document.getElementById('modalTitle').textContent=title;document.getElementById('modalBody').innerHTML=body;document.getElementById('modal').classList.add('open')}
+function openClient(id=null){
+ let c=id?db.clients.find(x=>x.id===id):{};
+ open(id?'Editar cliente':'Novo cliente',`<form onsubmit="saveClient(event,'${id||''}')"><div class="grid">
+ <div class="field full"><label>Nome do tutor *</label><input id="cname" required value="${esc(c.name)}"></div>
+ <div class="field"><label>WhatsApp</label><input id="cphone" value="${esc(c.phone)}"></div><div class="field"><label>E-mail</label><input id="cemail" value="${esc(c.email)}"></div>
+ <div class="field full"><label>Endereço das visitas</label><textarea id="caddress">${esc(c.address)}</textarea></div>
+ <div class="field full"><label>Observações</label><textarea id="cnote">${esc(c.note)}</textarea></div></div>
+ <div class="footer"><button type="button" class="secondary" onclick="closeModal()">Cancelar</button><button class="primary">Salvar</button></div></form>`);
+}
+function saveClient(e,id){e.preventDefault();let x={id:id||Date.now().toString(),name:cname.value,phone:cphone.value,email:cemail.value,address:caddress.value,note:cnote.value};let i=db.clients.findIndex(a=>a.id===x.id);i>=0?db.clients[i]=x:db.clients.push(x);save();closeModal();renderClients();toast('Cliente salvo!')}
+function renderClients(q=''){let a=db.clients.filter(c=>(c.name+' '+c.phone).toLowerCase().includes(q.toLowerCase()));document.getElementById('clientList').innerHTML=a.length?a.map(c=>`<div class="card"><div class="row"><div><div class="title">${esc(c.name)}</div><div class="sub">${esc(c.phone||'Sem WhatsApp')}</div></div><span class="pill">${db.pets.filter(p=>p.clientId===c.id).length} pet(s)</span></div><div class="actions" style="margin-top:12px"><button class="secondary" onclick="openClient('${c.id}')">Editar</button><button class="secondary" onclick="clientPets('${c.id}')">Ver pets</button><button class="secondary danger" onclick="delClient('${c.id}')">Excluir</button></div></div>`).join(''):'<div class="empty">Nenhum cliente cadastrado.</div>'}
+function clientPets(id){go('pets');renderPets(db.clients.find(c=>c.id===id)?.name||'')}
+function delClient(id){if(confirm('Excluir este cliente?')){db.clients=db.clients.filter(x=>x.id!==id);db.pets=db.pets.filter(x=>x.clientId!==id);save();renderClients()}}
+function openPet(id=null){
+ let p=id?db.pets.find(x=>x.id===id):{};
+ let opts=db.clients.map(c=>`<option value="${c.id}" ${p.clientId===c.id?'selected':''}>${esc(c.name)}</option>`).join('');
+ open(id?'Editar pet':'Novo pet',`<form onsubmit="savePet(event,'${id||''}')"><div class="grid">
+ <div class="field"><label>Nome do pet *</label><input id="pname" required value="${esc(p.name)}"></div><div class="field"><label>Tutor *</label><select id="pclient" required><option value="">Selecione</option>${opts}</select></div>
+ <div class="field"><label>Raça</label><input id="breed" value="${esc(p.breed)}"></div><div class="field"><label>Idade</label><input id="age" value="${esc(p.age)}"></div>
+ <div class="field"><label>Cor da pelagem</label><input id="color" value="${esc(p.color)}"></div><div class="field"><label>Sexo</label><select id="sex"><option></option><option ${p.sex==='Fêmea'?'selected':''}>Fêmea</option><option ${p.sex==='Macho'?'selected':''}>Macho</option></select></div>
+ <div class="field"><label>Alimentação</label><input id="food" value="${esc(p.food)}"></div><div class="field"><label>Quantidade (g)</label><input id="grams" type="number" value="${esc(p.grams)}"></div>
+ <div class="field full"><label>Remédio?</label><select id="meds"><option ${p.meds!=='Sim'?'selected':''}>Não</option><option ${p.meds==='Sim'?'selected':''}>Sim</option></select></div>
+ <div class="field full"><label>Medicamento, dose e horários</label><textarea id="medication">${esc(p.medication)}</textarea></div>
+ <div class="field full"><label>Brinquedo favorito</label><input id="toy" value="${esc(p.toy)}"></div>
+ <div class="field full"><label>Medos, rotina e cuidados especiais</label><textarea id="notes">${esc(p.notes)}</textarea></div></div>
+ <div class="footer"><button type="button" class="secondary" onclick="closeModal()">Cancelar</button><button class="primary">Salvar ficha</button></div></form>`);
+}
+function savePet(e,id){e.preventDefault();let x={id:id||Date.now().toString(),name:pname.value,clientId:pclient.value,breed:breed.value,age:age.value,color:color.value,sex:sex.value,food:food.value,grams:grams.value,meds:meds.value,medication:medication.value,toy:toy.value,notes:notes.value};let i=db.pets.findIndex(a=>a.id===x.id);i>=0?db.pets[i]=x:db.pets.push(x);save();closeModal();renderPets();toast('Pet salvo!')}
+function renderPets(q=''){let a=db.pets.filter(p=>(p.name+' '+p.breed+' '+(db.clients.find(c=>c.id===p.clientId)?.name||'')).toLowerCase().includes(q.toLowerCase()));document.getElementById('petList').innerHTML=a.length?a.map(p=>{let c=db.clients.find(x=>x.id===p.clientId);return `<div class="card"><div class="row"><div><div class="title">🐾 ${esc(p.name)}</div><div class="sub">${esc(p.breed||'Raça não informada')} • ${esc(c?.name||'Sem tutor')}</div></div>${p.meds==='Sim'?'<span class="pill">💊 Remédio</span>':''}</div><div class="sub" style="margin-top:9px">🍽️ ${esc(p.food||'Alimentação não informada')}${p.grams?' • '+p.grams+' g':''} ${p.toy?' • 🧸 '+esc(p.toy):''}</div><div class="actions" style="margin-top:12px"><button class="secondary" onclick="viewPet('${p.id}')">Ver ficha</button><button class="secondary" onclick="openPet('${p.id}')">Editar</button><button class="secondary danger" onclick="delPet('${p.id}')">Excluir</button></div></div>`}).join(''):'<div class="empty">Nenhum pet cadastrado.</div>'}
+function viewPet(id){let p=db.pets.find(x=>x.id===id),c=db.clients.find(x=>x.id===p.clientId);open('Ficha de '+p.name,`<div class="card"><b>Tutor:</b> ${esc(c?.name)}<br><b>Raça:</b> ${esc(p.breed)}<br><b>Idade:</b> ${esc(p.age)}<br><b>Pelagem:</b> ${esc(p.color)}<br><b>Sexo:</b> ${esc(p.sex)}<br><b>Alimentação:</b> ${esc(p.food)} — ${esc(p.grams)} g<br><b>Medicamento:</b> ${p.meds==='Sim'?esc(p.medication||'Sim'): 'Não'}<br><b>Brinquedo:</b> ${esc(p.toy)}<br><b>Observações:</b> ${esc(p.notes)}</div><button class="secondary" onclick="closeModal()">Fechar</button>`)}
+function delPet(id){if(confirm('Excluir este pet?')){db.pets=db.pets.filter(x=>x.id!==id);save();renderPets()}}
+function openVisit(id=null){
+ let v=id?db.visits.find(x=>x.id===id):{}, opts=db.pets.map(p=>`<option value="${p.id}" ${v.petId===p.id?'selected':''}>${esc(p.name)} — ${esc(db.clients.find(c=>c.id===p.clientId)?.name||'')}</option>`).join('');
+ open(id?'Editar visita':'Agendar visita',`<form onsubmit="saveVisit(event,'${id||''}')"><div class="grid">
+ <div class="field"><label>Pet *</label><select id="vpet" required><option value="">Selecione</option>${opts}</select></div><div class="field"><label>Data *</label><input id="vdate" type="date" required value="${v.date||today()}"></div>
+ <div class="field"><label>Horário *</label><input id="vtime" type="time" required value="${v.time||'09:00'}"></div><div class="field"><label>Valor (R$)</label><input id="vvalue" type="number" step=".01" value="${v.value||''}"></div>
+ <div class="field full"><label>Status do pagamento</label><select id="vpaid"><option ${v.paid!=='Sim'?'selected':''}>Pendente</option><option ${v.paid==='Sim'?'selected':''}>Pago</option></select></div>
+ <div class="field full"><label>Observações da visita</label><textarea id="vnote">${esc(v.note)}</textarea></div></div>
+ <p><b>Checklist da visita</b></p><label class="check"><input id="feed" type="checkbox" ${v.feed?'checked':''}> Alimentação oferecida</label><label class="check"><input id="water" type="checkbox" ${v.water?'checked':''}> Água trocada</label><label class="check"><input id="clean" type="checkbox" ${v.clean?'checked':''}> Espaço higienizado</label><label class="check"><input id="med" type="checkbox" ${v.med?'checked':''}> Medicamento administrado</label><label class="check"><input id="play" type="checkbox" ${v.play?'checked':''}> Brincadeira/enriquecimento</label><label class="check"><input id="update" type="checkbox" ${v.update?'checked':''}> Atualização enviada ao tutor</label>
+ <div class="footer"><button type="button" class="secondary" onclick="closeModal()">Cancelar</button><button class="primary">Salvar visita</button></div></form>`);
+}
+function saveVisit(e,id){e.preventDefault();let x={id:id||Date.now().toString(),petId:vpet.value,date:vdate.value,time:vtime.value,value:vvalue.value,paid:vpaid.value,note:vnote.value,feed:feed.checked,water:water.checked,clean:clean.checked,med:med.checked,play:play.checked,update:update.checked};let i=db.visits.findIndex(a=>a.id===x.id);i>=0?db.visits[i]=x:db.visits.push(x);save();closeModal();renderVisits();renderHome();toast('Visita salva!')}
+function renderVisits(){let f=document.getElementById('dateFilter').value;if(!f){f=today();document.getElementById('dateFilter').value=f}let a=db.visits.filter(v=>v.date===f).sort((x,y)=>x.time.localeCompare(y.time));document.getElementById('visitList').innerHTML=a.length?a.map(v=>visitCard(v)).join(''):'<div class="empty">Nenhuma visita para este dia.</div>'}
+function visitCard(v){let p=db.pets.find(x=>x.id===v.petId),c=db.clients.find(x=>x.id===p?.clientId);let done=[v.feed,v.water,v.clean,v.med,v.play,v.update].filter(Boolean).length;return `<div class="card"><div class="row"><div><div class="title">🕘 ${esc(v.time)} — ${esc(p?.name)}</div><div class="sub">👤 ${esc(c?.name)}${v.value?' • '+money(v.value):''}</div></div><span class="pill">${v.paid==='Sim'?'Pago':'Pendente'}</span></div><div class="sub" style="margin-top:9px">Checklist: ${done}/6 concluídos</div><div class="actions" style="margin-top:12px"><button class="secondary" onclick="openVisit('${v.id}')">Abrir visita</button><button class="secondary danger" onclick="delVisit('${v.id}')">Excluir</button></div></div>`}
+function delVisit(id){if(confirm('Excluir esta visita?')){db.visits=db.visits.filter(x=>x.id!==id);save();renderVisits();renderHome()}}
+function renderHome(){statPets.textContent=db.pets.length;statClients.textContent=db.clients.length;statToday.textContent=db.visits.filter(v=>v.date===today()).length;statPending.textContent=db.visits.filter(v=>v.paid!=='Sim').length;let a=db.visits.filter(v=>v.date>=today()).sort((x,y)=>(x.date+x.time).localeCompare(y.date+y.time)).slice(0,4);homeVisits.innerHTML=a.length?a.map(v=>visitCard(v)).join(''):'<div class="empty">Sua agenda está livre. ✨</div>'}
+function renderFinance(){let paid=db.visits.filter(v=>v.paid==='Sim').reduce((s,v)=>s+Number(v.value||0),0),open=db.visits.filter(v=>v.paid!=='Sim').reduce((s,v)=>s+Number(v.value||0),0);received.textContent=money(paid);openMoney.textContent=money(open);financeList.innerHTML=db.visits.filter(v=>v.value).sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time)).map(v=>{let p=db.pets.find(x=>x.id===v.petId);return `<div class="card"><div class="row"><div><div class="title">${esc(p?.name)}</div><div class="sub">${v.date} • ${v.time}</div></div><div style="text-align:right"><b>${money(v.value)}</b><div class="sub">${v.paid==='Sim'?'Pago':'Pendente'}</div></div></div></div>`}).join('')||'<div class="empty">Nenhuma visita com valor cadastrado.</div>'}
+renderHome();
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body></html>
