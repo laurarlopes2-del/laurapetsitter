@@ -3,7 +3,7 @@
   "short_name": "Petsitter",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#f7f7f3",
-  "theme_color": "#667965",
+  "background_color": "#fcf8f0",
+  "theme_color": "#c97818",
   "icons": []
 }
